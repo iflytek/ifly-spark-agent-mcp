@@ -2,7 +2,7 @@ import asyncio
 from contextlib import asynccontextmanager
 from typing import AsyncIterator, Iterator
 
-import mcp
+import mcp.server.stdio
 from mcp import types
 from mcp.server import Server, InitializationOptions, NotificationOptions
 
@@ -13,6 +13,7 @@ from agent import IflySparkAgentClient
 async def server_lifespan(server: Server) -> AsyncIterator[dict]:
     """Manage server startup and shutdown lifecycle."""
     # Initialize resources on startup
+    print("############# Initializing IflySparkAgentClient")
     yield {"ifly_spark_agent_client": IflySparkAgentClient()}
 
 
@@ -47,17 +48,17 @@ async def handle_call_tool(
     :param arguments:   tool arguments
     :return:
     """
-    ifly_client = server.request_context.lifespan_context["ifly_client"]
-    if name not in ifly_client.name_idx:
+    spark_agent_client = server.request_context.lifespan_context["ifly_spark_agent_client"]
+    if name not in spark_agent_client.name_idx:
         raise ValueError(f"Invalid tool name: {name}")
-    flow = ifly_client.flows[ifly_client.name_idx[name]]
-    if name == SysTool.SYS_UPLOAD_FILE.value:
-        data = ifly_client.upload_file(
+    flow = spark_agent_client.flows[spark_agent_client.name_idx[name]]
+    if name == "upload_file":
+        data = spark_agent_client.upload_file(
             flow.api_key,
             arguments["file"],
         )
     else:
-        data = ifly_client.chat_message(
+        data = spark_agent_client.chat_completions(
             flow,
             arguments,
         )

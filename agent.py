@@ -52,6 +52,7 @@ class IflySparkAgentClient(object):
         self.get_process_endpoint = "/openapi/flames/api/v2/skill-process"
 
         # 生成url,拼接API网关核心鉴权签名信息
+        self.get_agent_info();
 
     def create_url(self, method, path, wsProtocol):
         # 生成RFC1123格式的时间戳
@@ -109,20 +110,32 @@ class IflySparkAgentClient(object):
         return file_id
 
     # 建立连接, 生成内容
-    def generate(self, params):
+    def chat_completions(self, agent_info, arguments):
         request_url = self.create_url("GET", self.chat_endpoint, True)
         print("### generate ### request_url:", request_url)
         websocket.enableTrace(False)
         ws = websocket.WebSocketApp(
             request_url,
-            on_message=on_message,
-            on_error=on_error,
-            on_close=on_close,
-            on_open=on_open
+            on_message=self.on_message,
+            on_error=self.on_error,
+            on_close=self.on_close,
+            on_open=self.on_open
         )
         ws.app_id = self.app_id
-        ws.body_id = self.body_id
-        ws.params = params
+        ws.body_id = agent_info.body_id
+        ws.params = {
+            "header": {
+                "traceId": str(uuid.uuid1()).replace("-", ""),
+                "mode": 0,
+                "appId": self.app_id,
+                "bodyId": agent_info.body_id
+            },
+            "payload": {
+                "input": {
+                    "a2ae8c77d8": arguments
+                }
+            }
+        }
         ws.run_forever(
             sslopt={
                 "cert_reqs": ssl.CERT_NONE
@@ -175,28 +188,25 @@ class IflySparkAgentClient(object):
         else:
             return response_data["payload"]["id"]
 
+    # 收到websocket错误的处理
+    def on_error(self, ws, error):
+        print("### on_error:", error)
 
-# 收到websocket错误的处理
-def on_error(ws, error):
-    print("### on_error:", error)
+    # 收到websocket关闭的处理
+    def on_close(self, ws, close_status_code, close_msg):
+        print("### on_close ### code:", close_status_code, " msg:", close_msg)
 
+    # 收到websocket连接建立的处理
+    def on_open(self, ws):
+        print("### on_open ###")
+        request_params = json.dumps(ws.params)
+        print("### request:", request_params)
+        ws.send(request_params)
 
-# 收到websocket关闭的处理
-def on_close(ws, close_status_code, close_msg):
-    print("### on_close ### code:", close_status_code, " msg:", close_msg)
-
-
-# 收到websocket连接建立的处理
-def on_open(ws):
-    print("### on_open ###")
-    request_params = json.dumps(ws.params)
-    print("### request:", request_params)
-    ws.send(request_params)
-
-
-# 收到websocket消息的处理
-def on_message(ws, message):
-    print("### on_message:", message)
+    # 收到websocket消息的处理
+    def on_message(self, ws, message):
+        print("### on_message:", message)
+        # TODO 处理响应数据
 
 
 # 入口函数

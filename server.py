@@ -28,7 +28,7 @@ async def handle_list_tools() -> list[types.Tool]:
     """
     tools = []
     ctx = server.request_context
-    for i, flow in enumerate(ctx.lifespan_context["ifly_client"].flows):
+    for i, flow in enumerate(ctx.lifespan_context["ifly_spark_agent_client"].flows):
         tools.append(
             types.Tool(
                 name=flow.name,

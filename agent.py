@@ -27,8 +27,7 @@ class IflySparkAgentClient(object):
     def __init__(self,
                  base_url: str = os.getenv("IFLY_SPARK_AGENT_BASE_URL", "https://flames.iflytek.com:2443"),
                  app_id: str = os.getenv("IFLY_SPARK_AGENT_APP_ID"),
-                 app_secret: str = os.getenv("IFLY_SPARK_AGENT_APP_SECRET"),
-                 body_id: str = os.getenv("IFLY_SPARK_AGENT_BODY_ID")
+                 app_secret: str = os.getenv("IFLY_SPARK_AGENT_APP_SECRET")
                  ):
         if not base_url:
             raise ValueError("IFLY_SPARK_AGENT_BASE_URL is not set")
@@ -36,12 +35,9 @@ class IflySparkAgentClient(object):
             raise ValueError("IFLY_SPARK_AGENT_APP_ID is not set")
         if not app_secret:
             raise ValueError("IFLY_SPARK_AGENT_APP_SECRET is not set")
-        if not body_id:
-            raise ValueError("IFLY_SPARK_AGENT_BODY_ID is not set")
 
         self.app_id = app_id
         self.app_secret = app_secret
-        self.body_id = body_id
         self.base_url = base_url
         self.host = urlparse(self.base_url).hostname
         # chat会话接口地址
@@ -49,10 +45,10 @@ class IflySparkAgentClient(object):
         # 文件上传接口地址
         self.upload_endpoint = "/openapi/flames/file/v2/upload"
         # 获取智能体信息接口地址
-        self.get_process_endpoint = "/openapi/flames/api/v2/skill-process"
+        self.get_process_endpoint = "/openapi/flames/api/v2/apps/{id}/resources"
 
         # 生成url,拼接API网关核心鉴权签名信息
-        self.get_agent_info();
+        self.flows=self.get_agent_info()
 
     def create_url(self, method, path, wsProtocol):
         # 生成RFC1123格式的时间戳

@@ -109,8 +109,8 @@ class IflySparkAgentClient(object):
     # 建立连接, 生成内容
     def chat_completions(self, agent_info:Dict[str, Any], arguments):
         body_id = agent_info["body_id"]
-        for assit in self.flows:
-            if body_id == assit["body_id"]:
+        for flow in self.flows:
+            if body_id == flow["bodyId"]:
                 request_url = self.create_url("GET", self.chat_endpoint, True, body_id)
                 print("### generate ### request_url:", request_url)
                 websocket.enableTrace(False)
@@ -132,7 +132,7 @@ class IflySparkAgentClient(object):
                     },
                     "payload": {
                         "input": {
-                            assit["startNode"]: arguments
+                            flow["startNode"]: arguments
                         }
                     }
                 }
@@ -142,22 +142,63 @@ class IflySparkAgentClient(object):
                     }
                 )
 
+    def get_input_schema(self, input_args:List[Dict[str, Any]]) -> Dict[str, Any]:
+        properties = []
+        required = []
+        for arg in input_args:
+            properties.append({
+                arg["key"]: {
+                    "type": arg["type"]
+                }
+            })
+            if arg["required"]:
+                required.append(arg["key"])
+
+        return {
+            "type": "object",
+            "properties": properties,
+            "required": required
+        }
+
 
     def get_agent_info_mock(self) -> List[Dict[str, Any]]:
-        return [{
-            "body_id": "xzrbcess32olzcxnbufmjcagmkrdbdhf",
+        mockResponse = [{
             "bodyId": "xzrbcess32olzcxnbufmjcagmkrdbdhf",
             "name": "EchoTool",
             "description": "echo~echo~",
             "startNode": "a1184f50959",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "userInput": { "type": "string"},
-                    "required": ["userInput"]
+            "inputArgs": [
+                {
+                    "key": "userInput",
+                    "name": "用户输入",
+                    "required": True,
+                    "type": "string"
                 }
-            }
+            ]
         }]
+
+        return list(map(lambda item: {
+            "bodyId": item["bodyId"],
+            "name": item["name"],
+            "description": item["description"],
+            "startNode": item["startNode"],
+            "inputSchema": self.get_input_schema(item["inputArgs"]),
+
+        }, mockResponse))
+
+        # return [{
+        #     "bodyId": "xzrbcess32olzcxnbufmjcagmkrdbdhf",
+        #     "name": "EchoTool",
+        #     "description": "echo~echo~",
+        #     "startNode": "a1184f50959",
+        #     "inputSchema": {
+        #         "type": "object",
+        #         "properties": {
+        #             "userInput": { "type": "string"},
+        #         },
+        #         "required": ["userInput"]
+        #     }
+        # }]
 
     def get_agent_info(self) -> List[Dict[str, Any]]:
         """

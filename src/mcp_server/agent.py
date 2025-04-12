@@ -47,7 +47,7 @@ class IflySparkAgentClient(object):
         # 文件上传接口地址
         self.upload_endpoint = "/openapi/flames/file/v2/upload"
         # 获取智能体信息接口地址
-        self.get_process_endpoint = "/openapi/flames/api/v2/apps/{id}/resources"
+        self.get_process_endpoint = f"/openapi/flames/api/v2/apps/{app_id}/resources"
 
         # 生成url,拼接API网关核心鉴权签名信息
         # self.flows=self.get_agent_info()

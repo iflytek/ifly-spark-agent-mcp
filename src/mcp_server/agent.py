@@ -27,7 +27,8 @@ class IflySparkAgentClient(object):
     def __init__(self,
                  base_url: str = os.getenv("IFLY_SPARK_AGENT_BASE_URL", "https://flames.iflytek.com:2443"),
                  app_id: str = os.getenv("IFLY_SPARK_AGENT_APP_ID"),
-                 app_secret: str = os.getenv("IFLY_SPARK_AGENT_APP_SECRET")
+                 app_secret: str = os.getenv("IFLY_SPARK_AGENT_APP_SECRET"),
+                 body_id: str = os.getenv("IFLY_SPARK_AGENT_BODY_ID"),
                  ):
         if not base_url:
             raise ValueError("IFLY_SPARK_AGENT_BASE_URL is not set")
@@ -38,6 +39,7 @@ class IflySparkAgentClient(object):
 
         self.app_id = app_id
         self.app_secret = app_secret
+        self.body_id = body_id
         self.base_url = base_url
         self.host = urlparse(self.base_url).hostname
         # chat会话接口地址
@@ -48,7 +50,7 @@ class IflySparkAgentClient(object):
         self.get_process_endpoint = "/openapi/flames/api/v2/apps/{id}/resources"
 
         # 生成url,拼接API网关核心鉴权签名信息
-        self.flows=self.get_agent_info()
+        # self.flows=self.get_agent_info()
 
     def create_url(self, method, path, wsProtocol):
         # 生成RFC1123格式的时间戳
@@ -106,7 +108,7 @@ class IflySparkAgentClient(object):
         return file_id
 
     # 建立连接, 生成内容
-    def chat_completions(self, agent_info, arguments):
+    def chat_completions(self, agent_info:Dict[str, Any], arguments):
         request_url = self.create_url("GET", self.chat_endpoint, True)
         print("### generate ### request_url:", request_url)
         websocket.enableTrace(False)
@@ -118,18 +120,16 @@ class IflySparkAgentClient(object):
             on_open=self.on_open
         )
         ws.app_id = self.app_id
-        ws.body_id = agent_info.body_id
+        ws.body_id = agent_info["body_id"]
         ws.params = {
             "header": {
                 "traceId": str(uuid.uuid1()).replace("-", ""),
                 "mode": 0,
                 "appId": self.app_id,
-                "bodyId": agent_info.body_id
+                "bodyId": agent_info["body_id"]
             },
             "payload": {
-                "input": {
-                    "a2ae8c77d8": arguments
-                }
+                "input": arguments
             }
         }
         ws.run_forever(
@@ -201,8 +201,14 @@ class IflySparkAgentClient(object):
 
     # 收到websocket消息的处理
     def on_message(self, ws, message):
-        print("### on_message:", message)
+        # print("### on_message:", message)
         # TODO 处理响应数据
+        messageJson = json.loads(message)
+        if messageJson["header"]["status"] == 1:
+            nodeCode = messageJson["payload"]["output"]["node"]
+            nodeRespPayload = messageJson["payload"]["output"]["payload"]
+            print("### on_message, nodeCode:", nodeCode, " nodeRespPayload:", nodeRespPayload)
+
 
 
 # 入口函数

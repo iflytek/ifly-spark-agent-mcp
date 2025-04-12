@@ -6,7 +6,7 @@ import mcp.server.stdio
 from mcp import types
 from mcp.server import Server, InitializationOptions, NotificationOptions
 
-from agent import IflySparkAgentClient
+from src.mcp_server.agent import IflySparkAgentClient
 
 
 @asynccontextmanager

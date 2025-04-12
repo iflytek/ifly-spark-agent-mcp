@@ -7,6 +7,7 @@ requires-python = ">=3.12.5"
 dependencies = [
     "httpx>=0.28.1",
     "mcp[cli]>=1.6.0",
+    "websocket-client==1.8.0",
 ]
 
 [build-system]
@@ -14,4 +15,7 @@ requires = ["hatchling", ]
 build-backend = "hatchling.build"
 
 [project.scripts]
-ifly_spark_agent_mcp = "server:main"
+ifly_spark_agent_mcp = "mcp_server.server:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mcp_server"]

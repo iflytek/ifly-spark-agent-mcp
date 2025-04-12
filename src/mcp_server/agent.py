@@ -5,7 +5,7 @@ import hashlib
 import hmac
 import json
 import os
-from typing import Dict, Any
+from typing import Dict, List, Any
 
 import requests
 import ssl
@@ -28,7 +28,6 @@ class IflySparkAgentClient(object):
                  base_url: str = os.getenv("IFLY_SPARK_AGENT_BASE_URL", "https://flames.iflytek.com:2443"),
                  app_id: str = os.getenv("IFLY_SPARK_AGENT_APP_ID"),
                  app_secret: str = os.getenv("IFLY_SPARK_AGENT_APP_SECRET"),
-                 body_id: str = os.getenv("IFLY_SPARK_AGENT_BODY_ID"),
                  ):
         if not base_url:
             raise ValueError("IFLY_SPARK_AGENT_BASE_URL is not set")
@@ -39,7 +38,6 @@ class IflySparkAgentClient(object):
 
         self.app_id = app_id
         self.app_secret = app_secret
-        self.body_id = body_id
         self.base_url = base_url
         self.host = urlparse(self.base_url).hostname
         # chat会话接口地址
@@ -51,8 +49,9 @@ class IflySparkAgentClient(object):
 
         # 生成url,拼接API网关核心鉴权签名信息
         # self.flows=self.get_agent_info()
+        self.flows=self.get_agent_info_mock()
 
-    def create_url(self, method, path, wsProtocol):
+    def create_url(self, method, path, wsProtocol, bodyId):
         # 生成RFC1123格式的时间戳
         now = datetime.now()
         date = format_date_time(mktime(now.timetuple()))
@@ -75,7 +74,7 @@ class IflySparkAgentClient(object):
             "authorization": authorization,
             "date": date,
             "host": self.host,
-            "bodyId": self.body_id
+            "bodyId": bodyId
         }
         base_url = self.base_url.replace("https", "wss").replace("http", "ws") if wsProtocol else self.base_url
         # 拼接鉴权参数，生成url
@@ -109,41 +108,63 @@ class IflySparkAgentClient(object):
 
     # 建立连接, 生成内容
     def chat_completions(self, agent_info:Dict[str, Any], arguments):
-        request_url = self.create_url("GET", self.chat_endpoint, True)
-        print("### generate ### request_url:", request_url)
-        websocket.enableTrace(False)
-        ws = websocket.WebSocketApp(
-            request_url,
-            on_message=self.on_message,
-            on_error=self.on_error,
-            on_close=self.on_close,
-            on_open=self.on_open
-        )
-        ws.app_id = self.app_id
-        ws.body_id = agent_info["body_id"]
-        ws.params = {
-            "header": {
-                "traceId": str(uuid.uuid1()).replace("-", ""),
-                "mode": 0,
-                "appId": self.app_id,
-                "bodyId": agent_info["body_id"]
-            },
-            "payload": {
-                "input": arguments
-            }
-        }
-        ws.run_forever(
-            sslopt={
-                "cert_reqs": ssl.CERT_NONE
-            }
-        )
+        body_id = agent_info["body_id"]
+        for assit in self.flows:
+            if body_id == assit["body_id"]:
+                request_url = self.create_url("GET", self.chat_endpoint, True, body_id)
+                print("### generate ### request_url:", request_url)
+                websocket.enableTrace(False)
+                ws = websocket.WebSocketApp(
+                    request_url,
+                    on_message=self.on_message,
+                    on_error=self.on_error,
+                    on_close=self.on_close,
+                    on_open=self.on_open
+                )
+                ws.app_id = self.app_id
+                ws.body_id = agent_info["body_id"]
+                ws.params = {
+                    "header": {
+                        "traceId": str(uuid.uuid1()).replace("-", ""),
+                        "mode": 0,
+                        "appId": self.app_id,
+                        "bodyId": agent_info["body_id"]
+                    },
+                    "payload": {
+                        "input": {
+                            assit["startNode"]: arguments
+                        }
+                    }
+                }
+                ws.run_forever(
+                    sslopt={
+                        "cert_reqs": ssl.CERT_NONE
+                    }
+                )
 
-    def get_agent_info(self) -> Dict[str, Any]:
+
+    def get_agent_info_mock(self) -> List[Dict[str, Any]]:
+        return [{
+            "body_id": "xzrbcess32olzcxnbufmjcagmkrdbdhf",
+            "bodyId": "xzrbcess32olzcxnbufmjcagmkrdbdhf",
+            "name": "EchoTool",
+            "description": "echo~echo~",
+            "startNode": "a1184f50959",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "userInput": { "type": "string"},
+                    "required": ["userInput"]
+                }
+            }
+        }]
+
+    def get_agent_info(self) -> List[Dict[str, Any]]:
         """
         get flow info, such as flow description, parameters
         :return:
         """
-        url = f"{self.base_url}{self.get_process_endpoint}/{self.body_id}"
+        url = f"{self.base_url}{self.get_process_endpoint}"
         headers = {
             "Authorization": f"Bearer {self.app_id}:{self.app_secret}",
         }

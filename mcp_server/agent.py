@@ -1,21 +1,20 @@
 # coding: utf-8
-import _thread as thread
 import base64
 import hashlib
 import hmac
 import json
 import os
-from typing import Dict, List, Any
-
-import requests
 import ssl
 import uuid
-import websocket
 from datetime import datetime
 from time import mktime
+from typing import Dict, List, Any
 from urllib.parse import urlencode
 from urllib.parse import urlparse
 from wsgiref.handlers import format_date_time
+
+import requests
+import websocket
 
 
 class IflySparkAgentClient(object):
@@ -49,7 +48,30 @@ class IflySparkAgentClient(object):
 
         # 生成url,拼接API网关核心鉴权签名信息
         # self.flows=self.get_agent_info()
-        self.flows=self.get_agent_info_mock()
+        self.agents = self.get_agent_info_mock()
+        self.agents.append(
+            # add upload_file
+            {
+                "name": "upload_file",
+                "description": "upload file. Format support: image(jpg、png、bmp、jpeg), doc(pdf)",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "file": {
+                            "type": "string",
+                            "description": "file path"
+                        }
+                    },
+                    "required": ["file"]
+                }
+            }
+        )
+        self.name_idx: Dict[str, int] = {}
+        # build name_idx
+        for i, agent in enumerate(self.agents):
+            self.name_idx[agent["name"]] = i
+        print("########## agent list tools: ", self.agents)
+        print("########## agent name_idx: ", self.name_idx)
 
     def create_url(self, method, path, wsProtocol, bodyId):
         # 生成RFC1123格式的时间戳
@@ -82,35 +104,12 @@ class IflySparkAgentClient(object):
         # 此处打印出建立连接时候的url,参考本demo的时候可取消上方打印的注释，比对相同参数时生成的url与自己代码生成的url是否一致
         return url
 
-    def upload(self, file_path):
-        request_url = self.create_url("POST", self.upload_endpoint, False)
-        print("### upload ### request_url:", request_url)
-        _, file_name = os.path.split(file_path)
-        file = open(file_path, 'rb')
-        file_base64_str = base64.b64encode(file.read()).decode('utf-8')
-        body = {
-            "payload": {
-                "fileName": file_name,
-                "file": file_base64_str
-            }
-        }
-        response = requests.post(request_url, json=body, headers={'content-type': "application/json"},
-                                 verify=False)
-        print('response:', response.text)
-        data = json.loads(response.text)
-        code = data["header"]["code"]
-        if code != 0:
-            print(f'请求错误: {code}, {data}')
-            return
-        else:
-            file_id = data["payload"]["id"]
-        return file_id
-
     # 建立连接, 生成内容
-    def chat_completions(self, agent_info:Dict[str, Any], arguments):
-        body_id = agent_info["body_id"]
-        for flow in self.flows:
-            if body_id == flow["bodyId"]:
+    async def chat_completions(self, agent_info: Dict[str, Any], arguments):
+        print("### chat_completions ### agent_info:", agent_info)
+        body_id = agent_info["bodyId"]
+        for agent in self.agents:
+            if body_id == agent["bodyId"]:
                 request_url = self.create_url("GET", self.chat_endpoint, True, body_id)
                 print("### generate ### request_url:", request_url)
                 websocket.enableTrace(False)
@@ -122,17 +121,18 @@ class IflySparkAgentClient(object):
                     on_open=self.on_open
                 )
                 ws.app_id = self.app_id
-                ws.body_id = agent_info["body_id"]
+                ws.body_id = agent_info["bodyId"]
+                ws.full_response = ""
                 ws.params = {
                     "header": {
                         "traceId": str(uuid.uuid1()).replace("-", ""),
                         "mode": 0,
                         "appId": self.app_id,
-                        "bodyId": agent_info["body_id"]
+                        "bodyId": agent_info["bodyId"]
                     },
                     "payload": {
                         "input": {
-                            flow["startNode"]: arguments
+                            agent["startNode"]: arguments
                         }
                     }
                 }
@@ -141,25 +141,27 @@ class IflySparkAgentClient(object):
                         "cert_reqs": ssl.CERT_NONE
                     }
                 )
+                return ws.full_response
+            else:  # 其他智能体
+                print("### other agent, not support")
+                return "other agent, not support"
 
-    def get_input_schema(self, input_args:List[Dict[str, Any]]) -> Dict[str, Any]:
-        properties = []
+    def get_input_schema(self, input_args: List[Dict[str, Any]]) -> Dict[str, Any]:
+        properties = {}
         required = []
         for arg in input_args:
-            properties.append({
-                arg["key"]: {
-                    "type": arg["type"]
-                }
-            })
+            properties[arg["key"]] = {
+                "type": arg["type"],
+                "description": arg["name"]
+            }
             if arg["required"]:
                 required.append(arg["key"])
 
         return {
             "type": "object",
             "properties": properties,
-            "required": required
+            "required": required,
         }
-
 
     def get_agent_info_mock(self) -> List[Dict[str, Any]]:
         mockResponse = [{
@@ -234,14 +236,14 @@ class IflySparkAgentClient(object):
                 "file": file_base64_str
             }
         }
-        request_url = self.create_url("POST", self.upload_endpoint, False)
+        request_url = f"{self.base_url}{self.upload_endpoint}"
         print("### upload ### request_url:", request_url)
         response = requests.post(request_url, json=body, headers=headers, verify=False)
         print('response:', response.text)
         response_data = json.loads(response.text)
         code = response_data["header"]["code"]
         if code != 0:
-            print(f'请求错误: {code}, {data}')
+            print(f'请求错误: {code}, {response_data}')
             return None
         else:
             return response_data["payload"]["id"]
@@ -265,44 +267,11 @@ class IflySparkAgentClient(object):
     def on_message(self, ws, message):
         # print("### on_message:", message)
         # TODO 处理响应数据
-        messageJson = json.loads(message)
-        if messageJson["header"]["status"] == 1:
-            nodeCode = messageJson["payload"]["output"]["node"]
-            nodeRespPayload = messageJson["payload"]["output"]["payload"]
-            print("### on_message, nodeCode:", nodeCode, " nodeRespPayload:", nodeRespPayload)
-
-
-
-# 入口函数
-if __name__ == "__main__":
-    TRACE_ID = str(uuid.uuid1()).replace("-", "")
-    # 开发平台访问地址
-    BASE_URL = "https://172.31.164.103:30009"
-    # 应用管理 -> 应用详情 -> AppID(复制)
-    APP_ID = "C6E877B5753E46DFB899"
-    # 应用管理 -> 应用详情 -> App Secret Key(复制)
-    APP_SECRET = "ED9EC9A0D0F9493E8F96205D8A9E933E"
-    # 应用管理 -> 应用详情 -> 关联数据列表 -> 编码(复制)
-    BODY_ID = "xxxxxxxxxxxxxxxxxxxxxxxxxxx"
-    # 初始化客户端
-    client = IflySparkAgentClient(APP_ID, APP_SECRET, BASE_URL, BODY_ID)
-    # 上传文件,获取文件ID
-    file_id = client.upload("scene-file-test.txt")
-    # 通过"应用管理->应用详情->关联数据列表->协议"详情获取请求参数
-    data = {
-        "header": {
-            "traceId": TRACE_ID,
-            "mode": 0,
-            "appId": APP_ID,
-            "bodyId": BODY_ID
-        },
-        "payload": {
-            "input": {
-                "a2ae8c77d8": {
-                    "file": file_id,
-                }
-            }
-        }
-    }
-    # 生成内容
-    client.generate(data)
+        data = json.loads(message)
+        if data["header"]["status"] == 1:
+            if "payload" in data:
+                node_code = data["payload"]["output"]["node"]
+                node_res_payload = data["payload"]["output"]["payload"]
+                print("### on_message, node_code:", node_code, " node_res_payload:", node_res_payload)
+                text = node_res_payload["text"]
+                ws.full_response += text

@@ -6,8 +6,12 @@ readme = "README.md"
 requires-python = ">=3.12.5"
 dependencies = [
     "httpx>=0.28.1",
-    "mcp[cli]>=1.6.0",
+    "requests>=2.32.3",
+    "mcp>=1.6.0",
     "websocket-client==1.8.0",
+    "python-dotenv==1.0.1",
+    "anyio>=4.5",
+    "click>=8.1.0",
 ]
 
 [build-system]
@@ -18,4 +22,9 @@ build-backend = "hatchling.build"
 ifly_spark_agent_mcp = "mcp_server.server:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/mcp_server"]
+packages = ["mcp_server"]
+
+[tool.pyright]
+include = ["ifly_spark_agent_mcp"]
+venvPath = "."
+venv = ".venv"

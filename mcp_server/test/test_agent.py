@@ -1,4 +1,4 @@
-from src.mcp_server.agent import IflySparkAgentClient
+from mcp_server.agent import IflySparkAgentClient
 
 
 if __name__ == '__main__':

@@ -68,6 +68,7 @@ To add a persistent client, add the following to your `claude_desktop_config.jso
         "ifly-spark-agent-mcp"
       ],
       "env": {
+        "IFLY_SPARK_AGENT_BASE_URL": "xxxx",
         "IFLY_SPARK_AGENT_APP_ID": "xxxx",
         "IFLY_SPARK_AGENT_APP_SECRET": "xxxx"
       }
@@ -88,6 +89,7 @@ To add a persistent client, add the following to your `claude_desktop_config.jso
                 "ifly-spark-agent-mcp"
             ],
             "env": {
+              "IFLY_SPARK_AGENT_BASE_URL": "xxxx",
               "IFLY_SPARK_AGENT_APP_ID": "xxxx",
               "IFLY_SPARK_AGENT_APP_SECRET": "xxxx"
             }

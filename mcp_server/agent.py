@@ -24,7 +24,7 @@ class IFlySparkAgentClient(object):
 
     # 初始化
     def __init__(self,
-                 base_url: str = os.getenv("IFLY_SPARK_AGENT_BASE_URL", "https://flames.iflytek.com:2443"),
+                 base_url: str = os.getenv("IFLY_SPARK_AGENT_BASE_URL"),
                  app_id: str = os.getenv("IFLY_SPARK_AGENT_APP_ID"),
                  app_secret: str = os.getenv("IFLY_SPARK_AGENT_APP_SECRET"),
                  ):

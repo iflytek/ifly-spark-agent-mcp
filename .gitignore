@@ -159,9 +159,6 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
-.idea/
-*.iml
-
 
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
@@ -175,3 +172,8 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Idea
+.idea/
+*.iml
+

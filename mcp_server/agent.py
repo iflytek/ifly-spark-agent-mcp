@@ -229,8 +229,7 @@ class IFlySparkAgentClient(object):
 
     # 收到websocket消息的处理
     def on_message(self, ws, message):
-        # print("### on_message:", message)
-        # TODO 处理响应数据
+        print("### on_message:", message)
         data = json.loads(message)
         if data["header"]["status"] == 1:
             if "payload" in data:

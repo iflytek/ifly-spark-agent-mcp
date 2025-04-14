@@ -1,7 +1,7 @@
 [project]
 name = "ifly-spark-agent-mcp"
 version = "0.1.0"
-description = "This is a simple example of using MCP Server to invoke the task chain of the  iFlytek SparkAgent."
+description = "This is a simple example of using MCP Server to invoke the task chain of the iFlytek SparkAgent Platform."
 readme = "README.md"
 requires-python = ">=3.12.5"
 authors = [{ name = "iFlytek, SEC." }]

@@ -6,15 +6,15 @@ import click
 from mcp import types
 from mcp.server.lowlevel import Server
 
-from mcp_server.agent import IflySparkAgentClient
+from mcp_server.agent import IFlySparkAgentClient
 
 
 @asynccontextmanager
 async def server_lifespan(server: Server) -> AsyncIterator[dict]:
     """Manage server startup and shutdown lifecycle."""
     # Initialize resources on startup
-    print("############# Initializing IflySparkAgentClient")
-    yield {"ifly_spark_agent_client": IflySparkAgentClient()}
+    print("############# Initializing IFlySparkAgentClient")
+    yield {"ifly_spark_agent_client": IFlySparkAgentClient()}
 
 
 @click.command()

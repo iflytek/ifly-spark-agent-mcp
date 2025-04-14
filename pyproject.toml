@@ -1,9 +1,11 @@
 [project]
 name = "ifly-spark-agent-mcp"
 version = "0.1.0"
-description = "This a simple implementation of an MCP server using iFlytek SparkAgent. It enables calling iFlytek workflows through MCP tools."
+description = "This is a simple example of using MCP Server to invoke the task chain of the  iFlytek SparkAgent."
 readme = "README.md"
 requires-python = ">=3.12.5"
+authors = [{ name = "iFlytek, SEC." }]
+keywords = ["mcp", "llm", "automation", "web", "sparkagent"]
 dependencies = [
     "httpx>=0.28.1",
     "requests>=2.32.3",
@@ -19,7 +21,7 @@ requires = ["hatchling", ]
 build-backend = "hatchling.build"
 
 [project.scripts]
-ifly_spark_agent_mcp = "mcp_server.server:main"
+ifly-spark-agent-mcp = "mcp_server.server:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["mcp_server"]

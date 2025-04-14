@@ -17,7 +17,7 @@ import requests
 import websocket
 
 
-class IflySparkAgentClient(object):
+class IFlySparkAgentClient(object):
     """
         任务链客户端,用于通过API调用任务链进行会话
     """

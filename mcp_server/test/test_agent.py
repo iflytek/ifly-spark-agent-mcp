@@ -1,4 +1,5 @@
 from mcp_server.agent import IFlySparkAgentClient
+import asyncio
 
 
 if __name__ == '__main__':
@@ -11,10 +12,12 @@ if __name__ == '__main__':
     startNode = spark_agent_client.agents[0]["startNode"]
 
     agent_info = {
-        "body_id": spark_agent_client.agents[0]["bodyId"]
+        "bodyId": spark_agent_client.agents[0]["bodyId"]
     }
     agent_input = {
         "userInput": "aaaaaa"
     }
-    spark_agent_client.chat_completions(agent_info, agent_input)
+
+    result = asyncio.run(spark_agent_client.chat_completions(agent_info, agent_input))
+    print(result)
 

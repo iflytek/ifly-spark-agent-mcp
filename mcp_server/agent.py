@@ -47,8 +47,7 @@ class IFlySparkAgentClient(object):
         self.get_process_endpoint = f"/openapi/flames/api/v2/apps/{app_id}/resources"
 
         # 生成url,拼接API网关核心鉴权签名信息
-        # self.flows=self.get_agent_info()
-        self.agents = self.get_agent_info_mock()
+        self.agents=self.get_agent_info()
         self.agents.append(
             # add upload_file
             {
@@ -163,45 +162,6 @@ class IFlySparkAgentClient(object):
             "required": required,
         }
 
-    def get_agent_info_mock(self) -> List[Dict[str, Any]]:
-        mockResponse = [{
-            "bodyId": "xzrbcess32olzcxnbufmjcagmkrdbdhf",
-            "name": "EchoTool",
-            "description": "echo~echo~",
-            "startNode": "a1184f50959",
-            "inputArgs": [
-                {
-                    "key": "userInput",
-                    "name": "用户输入",
-                    "required": True,
-                    "type": "string"
-                }
-            ]
-        }]
-
-        return list(map(lambda item: {
-            "bodyId": item["bodyId"],
-            "name": item["name"],
-            "description": item["description"],
-            "startNode": item["startNode"],
-            "inputSchema": self.get_input_schema(item["inputArgs"]),
-
-        }, mockResponse))
-
-        # return [{
-        #     "bodyId": "xzrbcess32olzcxnbufmjcagmkrdbdhf",
-        #     "name": "EchoTool",
-        #     "description": "echo~echo~",
-        #     "startNode": "a1184f50959",
-        #     "inputSchema": {
-        #         "type": "object",
-        #         "properties": {
-        #             "userInput": { "type": "string"},
-        #         },
-        #         "required": ["userInput"]
-        #     }
-        # }]
-
     def get_agent_info(self) -> List[Dict[str, Any]]:
         """
         get flow info, such as flow description, parameters
@@ -213,11 +173,15 @@ class IFlySparkAgentClient(object):
         }
         response = requests.get(url, headers=headers)
         response.raise_for_status()
-        json_data = response.json()
-        if json_data.get("code", 0) != 0:
-            raise ValueError(json_data)
-        # TODO 处理响应数据
-        return json_data
+        json_arr = response.json()
+
+        return list(map(lambda item: {
+            "bodyId": item["bodyId"],
+            "name": item["name"],
+            "description": item["description"],
+            "startNode": item["startNode"],
+            "inputSchema": self.get_input_schema(item["inputArgs"]),
+        }, json_arr))
 
     def upload_file(
             self,

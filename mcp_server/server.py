@@ -46,6 +46,8 @@ def main(port: int, transport: str) -> int:
             data = spark_agent_client.upload_file(
                 arguments["file"],
             )
+        elif agent["kindCode"] and agent["kindCode"] == "RES_TOOLBOX":
+            data = spark_agent_client.tool_debug(agent, arguments)
         else:
             data = await spark_agent_client.chat_completions(
                 agent,

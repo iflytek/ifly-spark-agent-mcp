@@ -4,8 +4,8 @@ import asyncio
 
 if __name__ == '__main__':
     baseUrl = "http://172.31.164.103:30009"
-    appId = "9FE168C0D750461FBEFF"
-    appSecret = "7CEC56A21DC04A05A2EDCD7A30C89A5D"
+    appId = "FBFA28D8EAF1420DA44C"
+    appSecret = "B9D6A03BA0474D068CDB9771BB1354F5"
     spark_agent_client = IFlySparkAgentClient(baseUrl, appId, appSecret)
 
     bodyId = spark_agent_client.agents[0]["bodyId"]

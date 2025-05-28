@@ -43,6 +43,8 @@ class IFlySparkAgentClient(object):
         self.chat_endpoint = "/openapi/flames/api/v2/chat"
         # 文件上传接口地址
         self.upload_endpoint = "/openapi/flames/file/v2/upload"
+        # 工具调用地址
+        self.tool_debug_endpoint = "/openapi/flames/api/v1/skill-tool/tool-debug"
         # 获取智能体信息接口地址
         self.get_process_endpoint = f"/openapi/flames/api/v2/apps/{app_id}/resources"
 
@@ -145,23 +147,6 @@ class IFlySparkAgentClient(object):
                 print("### other agent, not support")
                 return "other agent, not support"
 
-    def get_input_schema(self, input_args: List[Dict[str, Any]]) -> Dict[str, Any]:
-        properties = {}
-        required = []
-        for arg in input_args:
-            properties[arg["key"]] = {
-                "type": arg["type"],
-                "description": arg["name"]
-            }
-            if arg["required"]:
-                required.append(arg["key"])
-
-        return {
-            "type": "object",
-            "properties": properties,
-            "required": required,
-        }
-
     def get_agent_info(self) -> List[Dict[str, Any]]:
         """
         get flow info, such as flow description, parameters
@@ -174,14 +159,39 @@ class IFlySparkAgentClient(object):
         response = requests.get(url, headers=headers)
         response.raise_for_status()
         json_arr = response.json()
+        json_arr = filter(lambda x: x["kindCode"] == "SKILL_PROCESS" or  x["kindCode"] == "RES_TOOLBOX", json_arr)
 
         return list(map(lambda item: {
+            "kindCode": item["kindCode"],
             "bodyId": item["bodyId"],
             "name": item["name"],
             "description": item["description"],
             "startNode": item["startNode"],
-            "inputSchema": self.get_input_schema(item["inputArgs"]),
+            "inputSchema": item["inputSchema"],
+            "toolId": item["toolId"],
         }, json_arr))
+
+    def tool_debug(self, agent, arguments) -> Any:
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.app_id}:{self.app_secret}",
+        }
+        body = {
+            "header": {
+                "mode" : 0
+            },
+            "payload": {
+                "bodyId": agent["bodyId"],
+                "id": agent["toolId"],
+                "args": arguments
+            }
+        }
+        request_url = f"{self.base_url}{self.tool_debug_endpoint}"
+        print("### upload ### request_url:", request_url)
+        response = requests.post(request_url, json=body, headers=headers, verify=False)
+        print('response:', response.text)
+        response_data = json.loads(response.text)
+        return response_data
 
     def upload_file(
             self,

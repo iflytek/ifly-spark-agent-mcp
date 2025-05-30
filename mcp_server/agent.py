@@ -124,19 +124,37 @@ class IFlySparkAgentClient(object):
                 ws.app_id = self.app_id
                 ws.body_id = agent_info["bodyId"]
                 ws.full_response = ""
-                ws.params = {
-                    "header": {
-                        "traceId": str(uuid.uuid1()).replace("-", ""),
-                        "mode": 0,
-                        "appId": self.app_id,
-                        "bodyId": agent_info["bodyId"]
-                    },
-                    "payload": {
-                        "input": {
-                            agent["startNode"]: arguments
+
+                if agent["kindCode"] and agent["kindCode"] == "SKILL_PROCESS":
+                    ws.params = {
+                        "header": {
+                            "traceId": str(uuid.uuid1()).replace("-", ""),
+                            "mode": 0,
+                            "appId": self.app_id,
+                            "bodyId": agent_info["bodyId"]
+                        },
+                        "payload": {
+                            "input": {
+                                agent["startNode"]: arguments
+                            }
                         }
                     }
-                }
+                elif agent["kindCode"] and agent["kindCode"] == "SKILL_KNOW":
+                    arguments["content_type"] = "text"
+                    ws.params = {
+                        "header": {
+                            "traceId": str(uuid.uuid1()).replace("-", ""),
+                            "mode": 0,
+                            "appId": self.app_id,
+                            "bodyId": agent_info["bodyId"]
+                        },
+                        "payload": {
+                            "text": [
+                                arguments
+                            ]
+                        }
+                    }
+
                 ws.run_forever(
                     sslopt={
                         "cert_reqs": ssl.CERT_NONE
@@ -145,7 +163,7 @@ class IFlySparkAgentClient(object):
                 return ws.full_response
             else:  # 其他智能体
                 print("### other agent, not support")
-                return "other agent, not support"
+        return "other agent, not support"
 
     def get_agent_info(self) -> List[Dict[str, Any]]:
         """
@@ -159,7 +177,7 @@ class IFlySparkAgentClient(object):
         response = requests.get(url, headers=headers)
         response.raise_for_status()
         json_arr = response.json()
-        json_arr = filter(lambda x: x["kindCode"] == "SKILL_PROCESS" or  x["kindCode"] == "RES_TOOLBOX", json_arr)
+        json_arr = filter(lambda x: x["kindCode"] == "SKILL_PROCESS" or  x["kindCode"] == "SKILL_TOOL" or x["kindCode"] == "SKILL_KNOW", json_arr)
 
         return list(map(lambda item: {
             "kindCode": item["kindCode"],
@@ -168,10 +186,11 @@ class IFlySparkAgentClient(object):
             "description": item["description"],
             "startNode": item["startNode"],
             "inputSchema": item["inputSchema"],
-            "toolId": item["toolId"],
+            "toolId": item["toolId"] if item.get("toolId") else "",
+            "toolboxId": item["toolboxId"] if item.get("toolboxId") else ""
         }, json_arr))
 
-    def tool_debug(self, agent, arguments) -> Any:
+    async def tool_debug(self, agent, arguments) -> Any:
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.app_id}:{self.app_secret}",
@@ -184,12 +203,14 @@ class IFlySparkAgentClient(object):
                 "bodyId": agent["bodyId"],
                 "id": agent["toolId"],
                 "args": arguments
-            }
+            },
+            "bodyId": agent["toolboxId"]
         }
-        request_url = f"{self.base_url}{self.tool_debug_endpoint}"
+
+        request_url = self.create_url("POST", self.tool_debug_endpoint, False, agent["toolboxId"])
         print("### upload ### request_url:", request_url)
         response = requests.post(request_url, json=body, headers=headers, verify=False)
-        print('response:', response.text)
+        # print('response:', response.text)
         response_data = json.loads(response.text)
         return response_data
 
@@ -225,6 +246,10 @@ class IFlySparkAgentClient(object):
     # 收到websocket错误的处理
     def on_error(self, ws, error):
         print("### on_error:", error)
+        try:
+            ws.close()
+        except Exception as e:
+            print("### on_close error:", e)
 
     # 收到websocket关闭的处理
     def on_close(self, ws, close_status_code, close_msg):
@@ -241,10 +266,18 @@ class IFlySparkAgentClient(object):
     def on_message(self, ws, message):
         print("### on_message:", message)
         data = json.loads(message)
-        if data["header"]["status"] == 1:
-            if "payload" in data:
-                node_code = data["payload"]["output"]["node"]
-                node_res_payload = data["payload"]["output"]["payload"]
-                print("### on_message, node_code:", node_code, " node_res_payload:", node_res_payload)
-                text = node_res_payload["text"]
-                ws.full_response += text
+        # if data["header"]["status"] == 1:
+        if "payload" in data:
+            text = ""
+            if "output" in data["payload"]:
+                if data["header"]["status"] == 1:
+                    node_code = data["payload"]["output"]["node"]
+                    node_res_payload = data["payload"]["output"]["payload"]
+                    print("### on_message, node_code:", node_code, " node_res_payload:", node_res_payload)
+                    text = node_res_payload["text"]
+            elif "choices" in data["payload"]:
+                if data["header"]["status"] in [0, 1, 2]:
+                    choices = data["payload"]["choices"]
+                    if choices["text"][0]:
+                        text = choices["text"][0]["content"]
+            ws.full_response += text

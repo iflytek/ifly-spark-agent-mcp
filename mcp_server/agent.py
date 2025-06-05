@@ -190,7 +190,7 @@ class IFlySparkAgentClient(object):
             "toolboxId": item["toolboxId"] if item.get("toolboxId") else ""
         }, json_arr))
 
-    async def tool_debug(self, agent, arguments) -> Any:
+    def tool_debug(self, agent, arguments) -> Any:
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.app_id}:{self.app_secret}",
@@ -210,9 +210,7 @@ class IFlySparkAgentClient(object):
         request_url = self.create_url("POST", self.tool_debug_endpoint, False, agent["toolboxId"])
         print("### upload ### request_url:", request_url)
         response = requests.post(request_url, json=body, headers=headers, verify=False)
-        # print('response:', response.text)
-        response_data = json.loads(response.text)
-        return response_data
+        return response.text
 
     def upload_file(
             self,

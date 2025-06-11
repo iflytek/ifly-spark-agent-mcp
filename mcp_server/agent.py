@@ -71,8 +71,8 @@ class IFlySparkAgentClient(object):
         # build name_idx
         for i, agent in enumerate(self.agents):
             self.name_idx[agent["name"]] = i
-        print("########## agent list tools: ", self.agents)
-        print("########## agent name_idx: ", self.name_idx)
+        # print("########## agent list tools: ", self.agents)
+        # print("########## agent name_idx: ", self.name_idx)
 
     def create_url(self, method, path, wsProtocol, bodyId):
         # 生成RFC1123格式的时间戳
@@ -107,12 +107,12 @@ class IFlySparkAgentClient(object):
 
     # 建立连接, 生成内容
     async def chat_completions(self, agent_info: Dict[str, Any], arguments):
-        print("### chat_completions ### agent_info:", agent_info)
+        # print("### chat_completions ### agent_info:", agent_info)
         body_id = agent_info["bodyId"]
         for agent in self.agents:
             if body_id == agent["bodyId"]:
                 request_url = self.create_url("GET", self.chat_endpoint, True, body_id)
-                print("### generate ### request_url:", request_url)
+                # print("### generate ### request_url:", request_url)
                 websocket.enableTrace(False)
                 ws = websocket.WebSocketApp(
                     request_url,
@@ -162,7 +162,8 @@ class IFlySparkAgentClient(object):
                 )
                 return ws.full_response
             else:  # 其他智能体
-                print("### other agent, not support")
+                # print("### other agent, not support")
+                pass
         return "other agent, not support"
 
     def get_agent_info(self) -> List[Dict[str, Any]]:
@@ -208,7 +209,7 @@ class IFlySparkAgentClient(object):
         }
 
         request_url = self.create_url("POST", self.tool_debug_endpoint, False, agent["toolboxId"])
-        print("### upload ### request_url:", request_url)
+        # print("### upload ### request_url:", request_url)
         response = requests.post(request_url, json=body, headers=headers, verify=False)
         return response.text
 
@@ -230,39 +231,41 @@ class IFlySparkAgentClient(object):
             }
         }
         request_url = f"{self.base_url}{self.upload_endpoint}"
-        print("### upload ### request_url:", request_url)
+        # print("### upload ### request_url:", request_url)
         response = requests.post(request_url, json=body, headers=headers, verify=False)
-        print('response:', response.text)
+        # print('response:', response.text)
         response_data = json.loads(response.text)
         code = response_data["header"]["code"]
         if code != 0:
-            print(f'请求错误: {code}, {response_data}')
+            # print(f'请求错误: {code}, {response_data}')
             return None
         else:
             return response_data["payload"]["id"]
 
     # 收到websocket错误的处理
     def on_error(self, ws, error):
-        print("### on_error:", error)
+        # print("### on_error:", error)
         try:
             ws.close()
         except Exception as e:
-            print("### on_close error:", e)
+            # # print("### on_close error:", e)
+            pass
 
     # 收到websocket关闭的处理
     def on_close(self, ws, close_status_code, close_msg):
-        print("### on_close ### code:", close_status_code, " msg:", close_msg)
+        # print("### on_close ### code:", close_status_code, " msg:", close_msg)
+        pass
 
     # 收到websocket连接建立的处理
     def on_open(self, ws):
-        print("### on_open ###")
+        # print("### on_open ###")
         request_params = json.dumps(ws.params)
-        print("### request:", request_params)
+        # print("### request:", request_params)
         ws.send(request_params)
 
     # 收到websocket消息的处理
     def on_message(self, ws, message):
-        print("### on_message:", message)
+        # print("### on_message:", message)
         data = json.loads(message)
         # if data["header"]["status"] == 1:
         if "payload" in data:
@@ -271,7 +274,7 @@ class IFlySparkAgentClient(object):
                 if data["header"]["status"] == 1:
                     node_code = data["payload"]["output"]["node"]
                     node_res_payload = data["payload"]["output"]["payload"]
-                    print("### on_message, node_code:", node_code, " node_res_payload:", node_res_payload)
+                    # print("### on_message, node_code:", node_code, " node_res_payload:", node_res_payload)
                     text = node_res_payload["text"]
             elif "choices" in data["payload"]:
                 if data["header"]["status"] in [0, 1, 2]:

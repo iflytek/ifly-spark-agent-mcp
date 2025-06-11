@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/iflytek-ifly-spark-agent-mcp-badge.png)](https://mseep.ai/app/iflytek-ifly-spark-agent-mcp)
+
 # ifly-spark-agent-mcp
 
 This is a simple example of using MCP Server to invoke the task chain of the  iFlytek SparkAgent Platform.
